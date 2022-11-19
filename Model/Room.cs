@@ -1,4 +1,4 @@
-﻿namespace RoomReservation
+﻿namespace RoomReservation.Model
 {
     public class Room
     {

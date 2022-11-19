@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using RoomReservation.Model;
 
 namespace RoomReservation.Controllers
 {
