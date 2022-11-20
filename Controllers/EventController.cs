@@ -15,6 +15,7 @@ namespace RoomReservation.Controllers
         {
             _logger = logger;
             _db = appDbContext;
+            logger.LogInformation("EventController created");
         }
 
         [HttpGet(Name = "GetAllEvents")]

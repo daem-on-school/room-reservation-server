@@ -39,7 +39,7 @@ namespace RoomReservation.Controllers
         public ActionResult Post([FromBody] Room value)
         {
             if (_db.Rooms.Find(value.Name) != null) return Conflict();
-            if (value.Keywords.Any(k => k.Contains(","))) return BadRequest();
+            if (value.Keywords.Any(k => k.Contains(','))) return BadRequest();
             _db.Rooms.Add(value);
             _db.SaveChanges();
             return CreatedAtAction(nameof(Get), new { name = value.Name }, value);
