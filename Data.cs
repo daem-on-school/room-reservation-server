@@ -8,10 +8,10 @@ namespace RoomReservation
     {
         public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
-        {
-            Database.EnsureCreated();
-        }
+        {}
         public DbSet<Room> Rooms => Set<Room>();
+        public DbSet<User> Users => Set<User>();
+        public DbSet<Event> Events => Set<Event>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -21,6 +21,9 @@ namespace RoomReservation
                     .HasConversion(
                         v => string.Join(',', v),
                         v => v.Split(',', StringSplitOptions.RemoveEmptyEntries));
+                room.HasMany(r => r.Reservations)
+                    .WithMany(e => e.Reservations)
+                    .UsingEntity(j => j.ToTable("Reservation"));
             });
         }
 
