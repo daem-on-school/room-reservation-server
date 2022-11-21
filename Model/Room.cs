@@ -19,7 +19,6 @@
 		{
             Name = "";
             Keywords = new string[0];
-            Reservations = new List<Event>();
 		}
 
 		public static implicit operator RoomDTO(Room v)

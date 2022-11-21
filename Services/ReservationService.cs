@@ -2,6 +2,8 @@ using RoomReservation.Model;
 
 namespace RoomReservation.Services
 {
+	public record Conflict(Event Event, Room Room);
+
 	public class ReservationService {
 		private readonly AppDbContext _db;
 
@@ -30,12 +32,13 @@ namespace RoomReservation.Services
 			return true;
 		}
 
-		public IEnumerable<Event> Conflicts(Room room, TimeSpanDTO ts) {
+		public IEnumerable<Event> FindConflicts(Room room, TimeSpanDTO ts) {
+			_db.Entry(room).Collection(r => r.Reservations).Load();
 			return room.Reservations.Where(e => Overlaps(e, ts));
 		}
 
-		public Dictionary<Room, IEnumerable<Event>> Conflicts(IEnumerable<Room> rooms, TimeSpanDTO ts) {
-			return rooms.ToDictionary(r => r, r => Conflicts(r, ts));
+		public IEnumerable<Conflict> FindConflicts(IEnumerable<Room> rooms, TimeSpanDTO ts) {
+			return rooms.SelectMany(r => FindConflicts(r, ts).Select(e => new Conflict(e, r)));
 		}
 
 		public void CancelReservations(Event ev, Room[] rooms)
@@ -67,6 +70,7 @@ namespace RoomReservation.Services
 		}
 
 		public IEnumerable<TimeSpanDTO> FindAvailableTimes(Room room, TimeSpanDTO limit) {
+			_db.Entry(room).Collection(r => r.Reservations).Load();
 			var reservations = room.Reservations
 				.Where(e => e.Start < limit.End && limit.Start < e.End)
 				.OrderBy(e => e.Start);

@@ -43,15 +43,14 @@ namespace RoomReservation.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<IEnumerable<EventSummaryDTO>> GetEvents(string name)
         {
-            var result = _db.Rooms.Find(name);
-            if (result == null) return NotFound();
+            var room = _db.Rooms.Find(name);
+            if (room == null) return NotFound();
             var showPrivate = User.Identity?.IsAuthenticated ?? false;
-            _db.Entry(result).Collection(r => r.Reservations).Load();
-            return Ok(result
-                .Reservations
-                .Where(e => e.IsPublic || showPrivate)
-                .Select(e => (EventSummaryDTO)e)
-            );
+            
+            _db.Entry(room).Collection(r => r.Reservations).Load();
+            IEnumerable<Event> results = room.Reservations;
+            if (!showPrivate) results = results.Where(e => e.IsPublic);
+            return Ok(results.Select(e => (EventSummaryDTO)e));
         }
 
         [HttpPost]
@@ -81,6 +80,17 @@ namespace RoomReservation.Controllers
             _db.Rooms.Remove(room);
             _db.SaveChanges();
             return NoContent();
+        }
+
+        [HttpGet("find-time/{name}")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<IEnumerable<TimeSpanDTO>> FindAvailableTimes(string name, [FromQuery] TimeSpanDTO timeSpan)
+        {
+            var room = _db.Rooms.Find(name);
+            if (room == null) return NotFound();
+			return Ok(_reservation.FindAvailableTimes(room, timeSpan));
         }
     }
 }

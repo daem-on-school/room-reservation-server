@@ -29,11 +29,20 @@ namespace RoomReservation.Controllers
             _reservation = reservation;
         }
 
+        private bool hasPermission(Event e) {
+            if (!User.Identity?.IsAuthenticated ?? false) return false;
+            var user = _userManager.GetUserAsync(User).Result;
+            return e.Organizer == user || User.IsInRole("Admin");
+        }
+
         [HttpGet(Name = "GetAll")]
-        public IEnumerable<EventSummaryDTO> GetAll()
+        public IEnumerable<EventSummaryDTO> GetAll([FromQuery] bool future = false)
         {
             var showPrivate = User.Identity?.IsAuthenticated ?? false;
-            return _db.Events.Where(e => e.IsPublic || showPrivate).Select(e => (EventSummaryDTO)e);
+            IEnumerable<Event> results = _db.Events;
+            if (!showPrivate) results = results.Where(e => e.IsPublic);
+            if (future) results = results.Where(e => e.Start > DateTime.Now);
+            return results.Select(e => (EventSummaryDTO)e);
         }
 
         [HttpGet("{id}")]
@@ -108,10 +117,6 @@ namespace RoomReservation.Controllers
             var result = _db.Events.Find(id);
             if (result == null) return NotFound();
 
-            if (!result.IsPublic
-                && (!User.Identity?.IsAuthenticated ?? false))
-                return Unauthorized();
-
             var roomList = rooms.Select(r => _db.Rooms.Find(r)).OfType<Room>().ToList();
             if (roomList.Count != rooms.Count)
             {
@@ -119,18 +124,15 @@ namespace RoomReservation.Controllers
                 return BadRequest(ModelState);
             }
 
-            var conflicts = _reservation.Conflicts(roomList, result);
-            if (conflicts.Any(pair => pair.Value.Any()))
+            var conflicts = _reservation.FindConflicts(roomList, result);
+            if (conflicts.Any())
             {
                 ModelState.AddModelError("Rooms", "One or more rooms are already reserved");
-				string[] messages = conflicts
-                    .Where(kv => kv.Value.Any())
-                    .Select(c => $"{c.Key.Name} is reserved")
-                    .ToArray();
-				ModelState.AddModelError(
-                    "Conflicts",
-                    string.Join(", ", messages)
-                );
+                foreach (var c in conflicts)
+                {
+                    _db.Entry(c.Event).Reference(e => e.Organizer).Load();
+                    ModelState.AddModelError("Rooms", $"{c.Room.Name} is reserved, contact {c.Event.Organizer.Email}");
+                }
                 return BadRequest(ModelState);
             }
 
@@ -149,10 +151,17 @@ namespace RoomReservation.Controllers
         [ProducesResponseType(StatusCodes.Status403Forbidden)]
         public ActionResult Put(int id, [FromBody] EventCreationDTO value)
         {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
             var result = _db.Events.Find(id);
             if (result == null) return NotFound();
-            if (result.Organizer != _userManager.GetUserAsync(User).Result)
-                return Forbid();
+            if (!hasPermission(result)) return Forbid();
+
+            if (value.Start >= value.End)
+            {
+                ModelState.AddModelError("Start", "Start time must be before end time");
+                return BadRequest(ModelState);
+            }
+
             result.Title = value.Title;
             result.Description = value.Description;
             result.Start = value.Start;
@@ -170,6 +179,7 @@ namespace RoomReservation.Controllers
         {
             var result = _db.Events.Find(id);
             if (result == null) return NotFound();
+            if (!hasPermission(result)) return Forbid();
             _db.Events.Remove(result);
             _db.SaveChanges();
             return NoContent();
@@ -183,6 +193,7 @@ namespace RoomReservation.Controllers
         {
             var result = _db.Events.Find(id);
             if (result == null) return NotFound();
+            if (!hasPermission(result)) return Forbid();
 
             var roomList = rooms.Select(r => _db.Rooms.Find(r)).OfType<Room>().ToList();
             if (roomList.Count != rooms.Count)
@@ -195,6 +206,17 @@ namespace RoomReservation.Controllers
             _reservation.CancelReservations(result, roomList.ToArray());
 
             return NoContent();
+        }        
+
+        [HttpGet("find-room/{id}")]
+        [Authorize]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<IEnumerable<RoomDTO>> FindAvailableRooms(int id)
+        {
+            var ev = _db.Events.Find(id);
+            if (ev == null) return NotFound();
+			return Ok(_reservation.FindAvailableRooms(ev).Select(r => (RoomDTO)r));
         }
     }
 }
