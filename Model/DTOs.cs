@@ -22,4 +22,31 @@ namespace RoomReservation.Model
 		[Required] string Email,
 		[Required] string Role
 	);
+
+	public record RoomDTO(
+		[Required] string Name,
+		[Required] string[] Keywords
+	);
+
+	public record TimeSpanDTO(
+		[Required] DateTime Start,
+		[Required] DateTime End
+	);
+
+	public record EventSummaryDTO(
+		int Id,
+		string Title,
+		string Description,
+		DateTime Start,
+		DateTime End
+	);
+
+	public record EventWithReservationDTO(
+		int Id,
+		string Title,
+		string Description,
+		DateTime Start,
+		DateTime End,
+		List<RoomDTO> Reservations
+	);
 }

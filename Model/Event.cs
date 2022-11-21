@@ -26,5 +26,11 @@ namespace RoomReservation.Model {
 		public Event()
 		{
 		}
+
+		public static implicit operator TimeSpanDTO(Event v)
+			=> new TimeSpanDTO(v.Start, v.End);
+
+		public static implicit operator EventSummaryDTO(Event v)
+			=> new EventSummaryDTO(v.Id, v.Title, v.Description, v.Start, v.End);
 	}
 }
