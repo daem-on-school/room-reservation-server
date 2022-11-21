@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using RoomReservation;
 using RoomReservation.Services;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -31,6 +30,7 @@ builder.Services
         options.SlidingExpiration = true;
     });
 
+builder.Services.AddCors();
 builder.Services.AddControllers();
 builder.Services.AddDbContextFactory<AppDbContext>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -44,6 +44,10 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors(builder =>
+    {
+        builder.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin();
+    });
 }
 
 app.UseAuthentication();
