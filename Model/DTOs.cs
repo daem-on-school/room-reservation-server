@@ -48,6 +48,7 @@ namespace RoomReservation.Model
 		string OrganizerName,
 		DateTime Start,
 		DateTime End,
-		List<RoomDTO> Reservations
+		List<RoomDTO> Reservations,
+		bool IsPublic
 	);
 }

@@ -67,7 +67,8 @@ namespace RoomReservation.Controllers
                 End: result.End,
                 Reservations: result.Reservations
                     .Select(r => new RoomDTO(r.Name, r.Keywords))
-                    .ToList()
+                    .ToList(),
+                IsPublic: result.IsPublic
             ));
         }
 
