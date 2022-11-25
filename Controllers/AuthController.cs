@@ -40,13 +40,17 @@ namespace RoomReservation.Controllers
 
 		[HttpPost("Login")]
 		[ProducesResponseType(StatusCodes.Status200OK)]
-		[ProducesResponseType(StatusCodes.Status401Unauthorized)]
-		public async Task<IActionResult> Login([FromBody] LoginDTO loginDTO) {
+		[ProducesResponseType(
+			StatusCodes.Status401Unauthorized,
+			Type = typeof(Microsoft.AspNetCore.Identity.SignInResult)
+		)]
+		public async Task<ActionResult<List<string>>> Login([FromBody] LoginDTO loginDTO) {
 			var result = await _signInManager.PasswordSignInAsync(loginDTO.Username, loginDTO.Password, false, false);
 			if (result.Succeeded) {
-				return Ok();
+				var user = await _userManager.FindByNameAsync(loginDTO.Username);
+				return Ok(await _userManager.GetRolesAsync(user));
 			}
-			return Unauthorized();
+			return Unauthorized(result);
 		}
 
 		[HttpPost("Logout")]

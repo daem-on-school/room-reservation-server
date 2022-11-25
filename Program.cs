@@ -30,12 +30,22 @@ builder.Services
         options.SlidingExpiration = true;
     });
 
-builder.Services.AddCors();
+builder.Services.AddCors(options => {
+    options.AddPolicy("MyPolicy", builder => {
+        builder.SetIsOriginAllowed(origin => true)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .WithExposedHeaders("Location")
+            .AllowCredentials();
+    });
+});
 builder.Services.AddControllers();
 builder.Services.AddDbContextFactory<AppDbContext>();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => {
+    options.SupportNonNullableReferenceTypes();
+});
 
 var app = builder.Build();
 
@@ -44,10 +54,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-    app.UseCors(builder =>
-    {
-        builder.AllowAnyHeader().AllowAnyMethod().AllowAnyOrigin();
-    });
+    app.UseCors("MyPolicy");
 }
 
 app.UseAuthentication();

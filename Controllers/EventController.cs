@@ -57,10 +57,12 @@ namespace RoomReservation.Controllers
                 && (!User.Identity?.IsAuthenticated ?? false))
                 return Unauthorized();
             _db.Entry(result).Collection(e => e.Reservations).Load();
+            _db.Entry(result).Reference(e => e.Organizer).Load();
             return Ok(new EventWithReservationDTO(
                 Id: result.Id,
                 Title: result.Title,
                 Description: result.Description,
+                OrganizerName: result.Organizer.UserName,
                 Start: result.Start,
                 End: result.End,
                 Reservations: result.Reservations

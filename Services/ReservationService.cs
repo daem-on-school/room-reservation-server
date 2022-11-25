@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using RoomReservation.Model;
 
 namespace RoomReservation.Services
@@ -66,7 +67,7 @@ namespace RoomReservation.Services
 		}
 
 		public IEnumerable<Room> FindAvailableRooms(Event ev) {
-			return _db.Rooms.Where(r => IsRoomAvailable(r, ev));
+			return _db.Rooms.Include(r => r.Reservations).ToList().Where(r => IsRoomAvailable(r, ev));
 		}
 
 		public IEnumerable<TimeSpanDTO> FindAvailableTimes(Room room, TimeSpanDTO limit) {
