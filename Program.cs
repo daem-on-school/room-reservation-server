@@ -28,6 +28,10 @@ builder.Services
         options.LoginPath = "/Identity/Account/Login";
         options.AccessDeniedPath = "/Identity/Account/AccessDenied";
         options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context => {
+            context.Response.StatusCode = 401;
+            return Task.CompletedTask;
+        };
     });
 
 builder.Services.AddCors(options => {
