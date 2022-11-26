@@ -106,6 +106,16 @@ namespace RoomReservation.Controllers
             return CreatedAtAction(nameof(Get), new { id = created.Id }, created);
         }
 
+        private void AddConflictsToModelState(IEnumerable<Conflict> conflicts)
+        {
+            ModelState.AddModelError("Rooms", "One or more rooms are already reserved");
+            foreach (var c in conflicts)
+            {
+                _db.Entry(c.Event).Reference(e => e.Organizer).Load();
+                ModelState.AddModelError("Rooms", $"{c.Room.Name} is reserved, contact {c.Event.Organizer.Email}");
+            }
+        }
+
         [HttpPost("{id}/reservations")]
         [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -130,12 +140,7 @@ namespace RoomReservation.Controllers
             var conflicts = _reservation.FindConflicts(roomList, result);
             if (conflicts.Any())
             {
-                ModelState.AddModelError("Rooms", "One or more rooms are already reserved");
-                foreach (var c in conflicts)
-                {
-                    _db.Entry(c.Event).Reference(e => e.Organizer).Load();
-                    ModelState.AddModelError("Rooms", $"{c.Room.Name} is reserved, contact {c.Event.Organizer.Email}");
-                }
+                AddConflictsToModelState(conflicts);
                 return BadRequest(ModelState);
             }
 
@@ -162,6 +167,17 @@ namespace RoomReservation.Controllers
             if (value.Start >= value.End)
             {
                 ModelState.AddModelError("Start", "Start time must be before end time");
+                return BadRequest(ModelState);
+            }
+
+            _db.Entry(result).Collection(e => e.Reservations).Load();
+            var conflicts = _reservation.FindConflicts(
+                result.Reservations, new TimeSpanDTO(value.Start, value.End)
+            );
+            conflicts = conflicts.Where(c => c.Event.Id != id);
+            if (conflicts.Any())
+            {
+                AddConflictsToModelState(conflicts);
                 return BadRequest(ModelState);
             }
 
