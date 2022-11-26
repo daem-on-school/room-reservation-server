@@ -92,5 +92,29 @@ namespace RoomReservation.Controllers
             if (room == null) return NotFound();
 			return Ok(_reservation.FindAvailableTimes(room, timeSpan));
         }
+
+        [HttpPost("copy/{from}")]
+        [Authorize(Roles = "Admin")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<RoomDTO> Copy(string from, [FromBody] RoomDTO value)
+        {
+            var room = _db.Rooms.Find(from);
+            if (room == null) return NotFound();
+            if (_db.Rooms.Find(value.Name) != null) return Conflict();
+            if (value.Keywords.Any(k => k.Contains(','))) return BadRequest();
+            var newRoom = new Room() {
+                Name = value.Name,
+                Keywords = value.Keywords,
+                Reservations = new List<Event>()
+            };
+            _db.Rooms.Add(newRoom);
+            _db.Entry(room).Collection(r => r.Reservations).Load();
+            foreach (var e in room.Reservations) {
+                newRoom.Reservations.Add(e);
+            }
+            _db.SaveChanges();
+            return CreatedAtAction(nameof(Get), new { name = value.Name }, value);
+        }
     }
 }
